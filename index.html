@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>LUKSO AI Agent Registry</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.13.4/ethers.min.js"></script>
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
       rel="stylesheet"
@@ -184,7 +184,7 @@
           </h1>
           <p class="text-gray-400 text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
             The first on-chain directory of autonomous AI agents on LUKSO.
-            Discover, verify, and connect with AI-powered Universal Profiles.
+            Aggregating from the on-chain registry and the LUKSO indexer.
           </p>
 
           <div class="hero-line max-w-xs mx-auto mb-8"></div>
@@ -402,12 +402,13 @@
 
     <script>
       // ─── Config ──────────────────────────────────────────────────────
-      const RPC_URL = 'https://42.rpc.thirdweb.com';
+      const RPC_URL = 'https://rpc.lukso.gateway.fm';
       const REGISTRY_ADDRESS = '0xF8e1971a4e115e5e48447d70f55293A640b5Afee';
       const IPFS_GATEWAY = 'https://api.universalprofile.cloud/ipfs/';
       const LSP3_KEY = '0x5ef83ad9559033e6e941db7d7c495acdce616347d28e90c7ce47cbfcfcad3bc5';
       const PROFILE_BASE_URL = 'https://universaleverything.io/';
       const EXPLORER_BASE_URL = 'https://explorer.lukso.network/address/';
+      const ENVIO_URL = 'https://envio.lukso-mainnet.universal.tech/v1/graphql';
 
       const REGISTRY_ABI = [
         'function getAgents() view returns (address[])',
@@ -519,7 +520,7 @@
       }
 
       // ─── Render an agent card ────────────────────────────────────────
-      function renderAgentCard(address, lsp3, index) {
+      function renderAgentCard(address, lsp3, index, source) {
         const profile = lsp3?.LSP3Profile || {};
         const name = profile.name || formatAddress(address);
         const description = profile.description || 'No description available';
@@ -555,6 +556,12 @@
           ? description.slice(0, maxDesc).trim() + '...'
           : description;
 
+        const sourceBadge = source === 'both'
+          ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Registry + Indexer</span>'
+          : source === 'registry'
+          ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-suits-gold/15 text-suits-goldMuted border border-suits-gold/20 font-medium">Registry</span>'
+          : '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20 font-medium">Indexer</span>';
+
         return `
           <div class="card rounded-2xl p-5 stagger-in" style="animation-delay: ${delay}s;">
             <div class="flex items-start gap-4 mb-3">
@@ -562,7 +569,10 @@
                 ${avatarHtml}
               </div>
               <div class="min-w-0 flex-1">
-                <h3 class="font-semibold text-white text-sm truncate mb-0.5">${name}</h3>
+                <div class="flex items-center gap-2 mb-0.5">
+                  <h3 class="font-semibold text-white text-sm truncate">${name}</h3>
+                  ${sourceBadge}
+                </div>
                 <a href="${explorerLink}" target="_blank" rel="noopener"
                    class="font-mono text-[11px] text-gray-600 hover:text-suits-goldMuted transition-colors">
                   ${formatAddress(address)}
@@ -618,39 +628,98 @@
         document.getElementById('agent-grid').classList.remove('hidden');
       }
 
-      // ─── Load agents ────────────────────────────────────────────────
+      // ─── Fetch agents from Envio indexer by tag ─────────────────────
+      async function fetchEnvioAgents() {
+        const query = `{
+          profiles(where: {tags: {_contains: ["ai-agent"]}}, limit: 100) {
+            items { id name }
+          }
+        }`;
+        try {
+          const res = await fetch(ENVIO_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ query }),
+          });
+          const data = await res.json();
+          return (data?.data?.profiles?.items || []).map(p => ({
+            address: ethers.getAddress(p.id),
+            name: p.name,
+            source: 'indexer',
+          }));
+        } catch (e) {
+          console.warn('Envio fetch failed:', e);
+          return [];
+        }
+      }
+
+      // ─── Fetch agents from on-chain registry ──────────────────────
+      async function fetchRegistryAgents() {
+        try {
+          const agents = await registryContract.getAgents();
+          return agents.map(a => ({
+            address: ethers.getAddress(a),
+            source: 'registry',
+          }));
+        } catch (e) {
+          console.warn('Registry fetch failed:', e);
+          return [];
+        }
+      }
+
+      // ─── Load agents (merged: registry + Envio) ───────────────────
       async function loadAgents() {
         showLoading();
 
         try {
           initProvider();
 
-          // Fetch agent count and addresses
-          const [count, agents] = await Promise.all([
-            registryContract.agentCount(),
-            registryContract.getAgents(),
+          // Fetch from both sources in parallel
+          const [registryAgents, envioAgents] = await Promise.all([
+            fetchRegistryAgents(),
+            fetchEnvioAgents(),
           ]);
 
-          const agentCount = Number(count);
-          document.getElementById('agent-count').textContent = agentCount;
+          // Deduplicate by address, prefer registry source
+          const agentMap = new Map();
+          for (const a of registryAgents) {
+            agentMap.set(a.address, { ...a, source: 'registry' });
+          }
+          for (const a of envioAgents) {
+            if (agentMap.has(a.address)) {
+              agentMap.get(a.address).source = 'both';
+            } else {
+              agentMap.set(a.address, a);
+            }
+          }
 
-          if (agentCount === 0 || agents.length === 0) {
+          const allAgents = Array.from(agentMap.values());
+          // Sort: registry/both first, then indexer-only
+          allAgents.sort((a, b) => {
+            const order = { both: 0, registry: 1, indexer: 2 };
+            return (order[a.source] || 2) - (order[b.source] || 2);
+          });
+
+          document.getElementById('agent-count').textContent = allAgents.length;
+
+          if (allAgents.length === 0) {
             showEmpty();
             return;
           }
 
           // Fetch LSP3 metadata for all agents in parallel
-          const metadataPromises = agents.map(addr => fetchLSP3(addr));
-          const metadataResults = await Promise.allSettled(metadataPromises);
+          const metadataResults = await Promise.allSettled(
+            allAgents.map(a => fetchLSP3(a.address))
+          );
 
           // Render cards
           const grid = document.getElementById('agent-grid');
           grid.innerHTML = '';
 
-          agents.forEach((address, index) => {
+          allAgents.forEach((agent, index) => {
             const result = metadataResults[index];
             const lsp3 = result.status === 'fulfilled' ? result.value : null;
-            grid.innerHTML += renderAgentCard(address, lsp3, index);
+            grid.innerHTML += renderAgentCard(agent.address, lsp3, index, agent.source);
           });
 
           showGrid();
