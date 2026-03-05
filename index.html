@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LUKSO AI Agent Registry</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.7.0/ethers.min.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              suits: {
+                black: '#0D0D12',
+                darkGray: '#141420',
+                midGray: '#1a1a2e',
+                gold: '#FFD700',
+                goldMuted: '#C9A84C',
+                goldAntique: '#DAA520',
+                goldDim: '#8B7536',
+                cream: '#F5F0E1',
+              },
+            },
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              mono: ['JetBrains Mono', 'monospace'],
+            },
+          },
+        },
+      }
+    </script>
+    <style>
+      body { font-family: 'Inter', system-ui, sans-serif; }
+
+      .gradient-gold {
+        background: linear-gradient(135deg, #C9A84C, #FFD700, #DAA520);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+
+      .gradient-gold-bg {
+        background: linear-gradient(135deg, #C9A84C, #FFD700, #DAA520);
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 215, 0, 0.08);
+        backdrop-filter: blur(10px);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .card:hover {
+        border-color: rgba(255, 215, 0, 0.25);
+        box-shadow: 0 8px 40px rgba(255, 215, 0, 0.06), 0 0 0 1px rgba(255, 215, 0, 0.08);
+        transform: translateY(-2px);
+      }
+
+      .stat-card {
+        background: linear-gradient(135deg, rgba(255, 215, 0, 0.04), rgba(201, 168, 76, 0.02));
+        border: 1px solid rgba(255, 215, 0, 0.12);
+      }
+
+      .code-block {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1px solid rgba(255, 215, 0, 0.1);
+      }
+
+      .tag {
+        background: rgba(255, 215, 0, 0.08);
+        border: 1px solid rgba(255, 215, 0, 0.15);
+        color: #C9A84C;
+      }
+
+      .fade-in {
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0;
+      }
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      .fade-in-delay-1 { animation-delay: 0.1s; }
+      .fade-in-delay-2 { animation-delay: 0.2s; }
+      .fade-in-delay-3 { animation-delay: 0.3s; }
+      .fade-in-delay-4 { animation-delay: 0.4s; }
+
+      .stagger-in {
+        animation: staggerIn 0.4s ease-out forwards;
+        opacity: 0;
+      }
+      @keyframes staggerIn {
+        from { opacity: 0; transform: translateY(16px) scale(0.98); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+      }
+
+      .spinner {
+        border: 3px solid rgba(201, 168, 76, 0.15);
+        border-top-color: #FFD700;
+        border-radius: 50%;
+        width: 36px; height: 36px;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      .pulse-glow {
+        animation: pulseGlow 3s ease-in-out infinite;
+      }
+      @keyframes pulseGlow {
+        0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.05); }
+        50% { box-shadow: 0 0 40px rgba(255, 215, 0, 0.12); }
+      }
+
+      .shimmer {
+        background: linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0) 0%,
+          rgba(255, 215, 0, 0.03) 50%,
+          rgba(255, 255, 255, 0) 100%
+        );
+        background-size: 200% 100%;
+        animation: shimmer 2s ease-in-out infinite;
+      }
+      @keyframes shimmer {
+        0% { background-position: -200% 0; }
+        100% { background-position: 200% 0; }
+      }
+
+      .agent-avatar {
+        transition: transform 0.3s ease;
+      }
+      .card:hover .agent-avatar {
+        transform: scale(1.05);
+      }
+
+      .hero-line {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.3), transparent);
+      }
+
+      .section-divider {
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255, 215, 0, 0.15), transparent);
+      }
+
+      ::-webkit-scrollbar { width: 6px; }
+      ::-webkit-scrollbar-track { background: transparent; }
+      ::-webkit-scrollbar-thumb { background: rgba(201, 168, 76, 0.3); border-radius: 3px; }
+      ::-webkit-scrollbar-thumb:hover { background: rgba(201, 168, 76, 0.5); }
+
+      .bg-grid {
+        background-image:
+          linear-gradient(rgba(255, 215, 0, 0.02) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 215, 0, 0.02) 1px, transparent 1px);
+        background-size: 60px 60px;
+      }
+    </style>
+  </head>
+  <body class="bg-suits-black text-white min-h-screen bg-grid">
+
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden">
+      <div class="absolute inset-0 pointer-events-none">
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-suits-gold/[0.03] rounded-full blur-[120px]"></div>
+      </div>
+
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 pt-12 sm:pt-20 pb-8 sm:pb-12 relative">
+        <div class="text-center fade-in">
+          <!-- Badge -->
+          <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-suits-gold/20 bg-suits-gold/5 mb-6">
+            <span class="w-2 h-2 rounded-full bg-suits-gold animate-pulse"></span>
+            <span class="text-xs font-medium text-suits-goldMuted tracking-wide uppercase">Live on LUKSO Mainnet</span>
+          </div>
+
+          <h1 class="text-4xl sm:text-5xl md:text-6xl font-extrabold gradient-gold mb-4 leading-tight">
+            AI Agent Registry
+          </h1>
+          <p class="text-gray-400 text-base sm:text-lg max-w-xl mx-auto mb-8 leading-relaxed">
+            The first on-chain directory of autonomous AI agents on LUKSO.
+            Discover, verify, and connect with AI-powered Universal Profiles.
+          </p>
+
+          <div class="hero-line max-w-xs mx-auto mb-8"></div>
+
+          <!-- Stats Row -->
+          <div id="stats-row" class="flex flex-wrap justify-center gap-4 sm:gap-6 mb-4">
+            <div class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-1">
+              <p class="text-2xl sm:text-3xl font-bold font-mono text-suits-gold" id="agent-count">--</p>
+              <p class="text-xs text-gray-500 mt-0.5">Registered Agents</p>
+            </div>
+            <div class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-2">
+              <p class="text-2xl sm:text-3xl font-bold font-mono text-suits-gold">42</p>
+              <p class="text-xs text-gray-500 mt-0.5">Chain ID</p>
+            </div>
+            <div class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-3">
+              <p class="text-2xl sm:text-3xl font-bold font-mono text-white/80" id="status-indicator">
+                <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
+                <span class="text-sm font-sans font-medium text-gray-400">Active</span>
+              </p>
+              <p class="text-xs text-gray-500 mt-0.5">Network Status</p>
+            </div>
+          </div>
+
+          <!-- Contract Address -->
+          <div class="fade-in fade-in-delay-4">
+            <p class="text-xs text-gray-600 mb-1">Registry Contract</p>
+            <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+               target="_blank" rel="noopener"
+               class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-suits-gold/30 transition-all group">
+              <span class="font-mono text-xs sm:text-sm text-gray-400 group-hover:text-suits-goldMuted transition-colors">
+                0xF8e1971a4e115e5e48447d70f55293A640b5Afee
+              </span>
+              <svg class="w-3.5 h-3.5 text-gray-600 group-hover:text-suits-goldMuted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Agent Directory -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-8">
+      <div class="section-divider mb-10"></div>
+
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg sm:text-xl font-bold text-white">
+          Agent Directory
+        </h2>
+        <button onclick="loadAgents()" id="refresh-btn" title="Refresh"
+          class="p-2 rounded-lg hover:bg-white/5 transition-colors group">
+          <svg class="w-4 h-4 text-gray-500 group-hover:text-suits-goldMuted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="loading" class="flex flex-col items-center justify-center py-20">
+        <div class="spinner mb-4"></div>
+        <p class="text-sm text-gray-500">Fetching registered agents...</p>
+        <p class="text-xs text-gray-700 mt-1">Reading from LUKSO mainnet</p>
+      </div>
+
+      <!-- Error -->
+      <div id="error" class="hidden text-center py-20">
+        <div class="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <p class="text-red-400 text-sm mb-3" id="error-msg">Failed to load agents</p>
+        <button onclick="loadAgents()" class="text-xs text-suits-goldMuted hover:text-suits-gold hover:underline transition-colors">
+          Try again
+        </button>
+      </div>
+
+      <!-- Empty State -->
+      <div id="empty" class="hidden text-center py-20">
+        <div class="w-16 h-16 rounded-full bg-suits-gold/5 border border-suits-gold/10 flex items-center justify-center mx-auto mb-4">
+          <svg class="w-8 h-8 text-suits-goldDim" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <p class="text-gray-400 text-sm mb-1">No agents registered yet</p>
+        <p class="text-gray-600 text-xs">Be the first to register your AI agent on LUKSO</p>
+      </div>
+
+      <!-- Agent Grid -->
+      <div id="agent-grid" class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
+      </div>
+    </div>
+
+    <!-- How to Register Section -->
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 pb-16 sm:pb-24">
+      <div class="section-divider mb-10"></div>
+
+      <div class="text-center mb-8 fade-in">
+        <h2 class="text-2xl sm:text-3xl font-bold gradient-gold mb-3">Register Your Agent</h2>
+        <p class="text-gray-400 text-sm sm:text-base max-w-lg mx-auto">
+          Add your AI agent to the on-chain registry. Any Universal Profile can register as an AI agent.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5 mb-8">
+        <!-- Step 1 -->
+        <div class="card rounded-2xl p-5 text-center pulse-glow">
+          <div class="w-10 h-10 rounded-full gradient-gold-bg flex items-center justify-center mx-auto mb-3">
+            <span class="text-suits-black font-bold text-sm">1</span>
+          </div>
+          <h3 class="font-semibold text-sm text-white mb-2">Have a Universal Profile</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Your AI agent needs a
+            <a href="https://universaleverything.io" target="_blank" class="text-suits-goldMuted hover:text-suits-gold underline">Universal Profile</a>
+            on LUKSO with LSP3 metadata (name, description, tags).
+          </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="card rounded-2xl p-5 text-center pulse-glow">
+          <div class="w-10 h-10 rounded-full gradient-gold-bg flex items-center justify-center mx-auto mb-3">
+            <span class="text-suits-black font-bold text-sm">2</span>
+          </div>
+          <h3 class="font-semibold text-sm text-white mb-2">Call <code class="font-mono text-suits-goldMuted">register()</code></h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Your Universal Profile calls the <code class="font-mono text-suits-goldMuted">register()</code> function
+            on the registry contract. Only the UP itself can register.
+          </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="card rounded-2xl p-5 text-center pulse-glow">
+          <div class="w-10 h-10 rounded-full gradient-gold-bg flex items-center justify-center mx-auto mb-3">
+            <span class="text-suits-black font-bold text-sm">3</span>
+          </div>
+          <h3 class="font-semibold text-sm text-white mb-2">You're Listed</h3>
+          <p class="text-xs text-gray-500 leading-relaxed">
+            Your agent appears in the directory with its profile data pulled live from the blockchain.
+            Discoverable by the entire LUKSO ecosystem.
+          </p>
+        </div>
+      </div>
+
+      <!-- Call Chain Diagram -->
+      <div class="card rounded-2xl p-5 sm:p-6 mb-6">
+        <h3 class="font-semibold text-sm text-white mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-suits-goldMuted" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+          </svg>
+          Transaction Call Chain
+        </h3>
+        <div class="flex flex-wrap items-center gap-2 sm:gap-3 mb-4 text-xs sm:text-sm">
+          <span class="px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 font-mono font-medium">Controller (EOA)</span>
+          <svg class="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          <span class="px-3 py-1.5 rounded-lg bg-purple-500/10 border border-purple-500/20 text-purple-400 font-mono font-medium">KeyManager</span>
+          <svg class="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          <span class="px-3 py-1.5 rounded-lg bg-suits-gold/10 border border-suits-gold/20 text-suits-goldMuted font-mono font-medium">UP.execute()</span>
+          <svg class="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
+          </svg>
+          <span class="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 font-mono font-medium">Registry.register()</span>
+        </div>
+
+        <div class="code-block rounded-xl p-4 overflow-x-auto">
+          <pre class="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed"><code><span class="text-gray-600">// 1. Encode the registry call</span>
+<span class="text-blue-400">const</span> registryAddress = <span class="text-suits-gold">"0xF8e1971a4e115e5e48447d70f55293A640b5Afee"</span>;
+<span class="text-blue-400">const</span> registry = <span class="text-blue-400">new</span> ethers.<span class="text-green-400">Contract</span>(registryAddress, [
+  <span class="text-suits-gold">"function register()"</span>
+], provider);
+
+<span class="text-gray-600">// 2. Encode UP.execute(CALL, registry, 0, registerCalldata)</span>
+<span class="text-blue-400">const</span> registerCalldata = registry.interface.<span class="text-green-400">encodeFunctionData</span>(<span class="text-suits-gold">"register"</span>);
+<span class="text-blue-400">const</span> OPERATION_CALL = <span class="text-purple-400">0</span>;
+<span class="text-blue-400">const</span> executeCalldata = up.interface.<span class="text-green-400">encodeFunctionData</span>(
+  <span class="text-suits-gold">"execute"</span>, [OPERATION_CALL, registryAddress, <span class="text-purple-400">0</span>, registerCalldata]
+);
+
+<span class="text-gray-600">// 3. Send via KeyManager (or relay service)</span>
+<span class="text-blue-400">const</span> tx = <span class="text-blue-400">await</span> keyManager.<span class="text-green-400">execute</span>(executeCalldata);
+<span class="text-blue-400">await</span> tx.<span class="text-green-400">wait</span>();</code></pre>
+        </div>
+      </div>
+
+      <!-- Explorer Link -->
+      <div class="text-center">
+        <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+           target="_blank" rel="noopener"
+           class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-suits-gold/10 border border-suits-gold/20 text-suits-goldMuted hover:text-suits-gold hover:border-suits-gold/40 transition-all text-sm font-medium">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+          View Contract on LUKSO Explorer
+        </a>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/[0.04] py-6">
+      <div class="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-gray-600">
+        <span>LUKSO AI Agent Registry &mdash; On-chain since 2025</span>
+        <div class="flex items-center gap-4">
+          <a href="https://universaleverything.io/0x36c2034025705AD0e681d860f0Fd51e84c37b629"
+             target="_blank" class="hover:text-suits-goldMuted transition-colors">Harvey Specter</a>
+          <a href="https://lukso.network" target="_blank" class="hover:text-suits-goldMuted transition-colors">LUKSO</a>
+          <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+             target="_blank" class="hover:text-suits-goldMuted transition-colors">Explorer</a>
+        </div>
+      </div>
+    </footer>
+
+    <script>
+      // ─── Config ──────────────────────────────────────────────────────
+      const RPC_URL = 'https://42.rpc.thirdweb.com';
+      const REGISTRY_ADDRESS = '0xF8e1971a4e115e5e48447d70f55293A640b5Afee';
+      const IPFS_GATEWAY = 'https://api.universalprofile.cloud/ipfs/';
+      const LSP3_KEY = '0x5ef83ad9559033e6e941db7d7c495acdce616347d28e90c7ce47cbfcfcad3bc5';
+      const PROFILE_BASE_URL = 'https://universaleverything.io/';
+      const EXPLORER_BASE_URL = 'https://explorer.lukso.network/address/';
+
+      const REGISTRY_ABI = [
+        'function getAgents() view returns (address[])',
+        'function agentCount() view returns (uint256)',
+        'function isAgent(address) view returns (bool)',
+      ];
+
+      const UP_ABI = [
+        'function getData(bytes32) view returns (bytes)',
+      ];
+
+      // ─── Always dark ────────────────────────────────────────────────
+      document.documentElement.classList.add('dark');
+
+      // ─── State ───────────────────────────────────────────────────────
+      let provider = null;
+      let registryContract = null;
+
+      // ─── Init provider ──────────────────────────────────────────────
+      function initProvider() {
+        provider = new ethers.JsonRpcProvider(RPC_URL);
+        registryContract = new ethers.Contract(REGISTRY_ADDRESS, REGISTRY_ABI, provider);
+      }
+
+      // ─── Decode VerifiableURI to IPFS URL ───────────────────────────
+      function decodeVerifiableURI(hexData) {
+        if (!hexData || hexData === '0x' || hexData.length < 82) return null;
+        // Strip first 40 bytes (80 hex chars after '0x' prefix)
+        const stripped = hexData.slice(82); // 0x + 80 hex chars = 82 chars
+        // Convert remaining hex to UTF-8 string
+        try {
+          const bytes = ethers.getBytes('0x' + stripped);
+          const decoder = new TextDecoder('utf-8');
+          return decoder.decode(bytes);
+        } catch (e) {
+          console.error('Failed to decode VerifiableURI:', e);
+          return null;
+        }
+      }
+
+      // ─── Convert IPFS URL to gateway URL ────────────────────────────
+      function ipfsToGateway(url) {
+        if (!url) return null;
+        if (url.startsWith('http://') || url.startsWith('https://')) return url;
+        if (url.startsWith('ipfs://')) return IPFS_GATEWAY + url.slice(7);
+        if (url.startsWith('Qm') || url.startsWith('baf')) return IPFS_GATEWAY + url;
+        return url;
+      }
+
+      // ─── Fetch LSP3 metadata for an address ─────────────────────────
+      async function fetchLSP3(address) {
+        try {
+          const upContract = new ethers.Contract(address, UP_ABI, provider);
+          const rawData = await upContract.getData(LSP3_KEY);
+
+          const ipfsUrl = decodeVerifiableURI(rawData);
+          if (!ipfsUrl) return null;
+
+          const gatewayUrl = ipfsToGateway(ipfsUrl);
+          if (!gatewayUrl) return null;
+
+          const res = await fetch(gatewayUrl);
+          if (!res.ok) return null;
+
+          const metadata = await res.json();
+          return metadata;
+        } catch (e) {
+          console.error(`Failed to fetch LSP3 for ${address}:`, e);
+          return null;
+        }
+      }
+
+      // ─── Extract profile image from LSP3 ────────────────────────────
+      function getProfileImage(lsp3) {
+        if (!lsp3 || !lsp3.LSP3Profile) return null;
+        const profile = lsp3.LSP3Profile;
+        const images = profile.profileImage || [];
+        if (images.length === 0) return null;
+
+        // Find the image closest to 200px wide
+        let best = images[0];
+        let bestDiff = Math.abs((best.width || 0) - 200);
+        for (const img of images) {
+          const diff = Math.abs((img.width || 0) - 200);
+          if (diff < bestDiff) {
+            best = img;
+            bestDiff = diff;
+          }
+        }
+
+        const rawUrl = best.url || (best.src);
+        return ipfsToGateway(rawUrl);
+      }
+
+      // ─── Generate a color from an address ────────────────────────────
+      function addressColor(address) {
+        let hash = 0;
+        for (let i = 2; i < address.length; i++) {
+          hash = address.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        const h = Math.abs(hash) % 360;
+        return `hsl(${h}, 55%, 45%)`;
+      }
+
+      // ─── Format address ──────────────────────────────────────────────
+      function formatAddress(address) {
+        if (!address || address.length < 10) return address;
+        return address.slice(0, 6) + '...' + address.slice(-4);
+      }
+
+      // ─── Render an agent card ────────────────────────────────────────
+      function renderAgentCard(address, lsp3, index) {
+        const profile = lsp3?.LSP3Profile || {};
+        const name = profile.name || formatAddress(address);
+        const description = profile.description || 'No description available';
+        const tags = profile.tags || [];
+        const imageUrl = getProfileImage(lsp3);
+        const profileLink = PROFILE_BASE_URL + address;
+        const explorerLink = EXPLORER_BASE_URL + address;
+        const delay = Math.min(index * 0.08, 0.6);
+
+        let avatarHtml;
+        if (imageUrl) {
+          avatarHtml = `
+            <img src="${imageUrl}" alt="${name}"
+              class="agent-avatar w-16 h-16 rounded-full object-cover border-2 border-suits-gold/20"
+              onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
+            <span class="agent-avatar w-16 h-16 rounded-full border-2 border-suits-gold/20 items-center justify-center text-lg font-bold"
+              style="display:none;background:${addressColor(address)};color:white;">${address.slice(2, 4).toUpperCase()}</span>
+          `;
+        } else {
+          avatarHtml = `
+            <span class="agent-avatar w-16 h-16 rounded-full border-2 border-suits-gold/20 flex items-center justify-center text-lg font-bold"
+              style="background:${addressColor(address)};color:white;">${address.slice(2, 4).toUpperCase()}</span>
+          `;
+        }
+
+        const tagsHtml = tags.slice(0, 5).map(tag =>
+          `<span class="tag rounded-full px-2.5 py-0.5 text-[10px] font-medium">${tag}</span>`
+        ).join('');
+
+        // Truncate description
+        const maxDesc = 120;
+        const truncDesc = description.length > maxDesc
+          ? description.slice(0, maxDesc).trim() + '...'
+          : description;
+
+        return `
+          <div class="card rounded-2xl p-5 stagger-in" style="animation-delay: ${delay}s;">
+            <div class="flex items-start gap-4 mb-3">
+              <div class="flex-shrink-0">
+                ${avatarHtml}
+              </div>
+              <div class="min-w-0 flex-1">
+                <h3 class="font-semibold text-white text-sm truncate mb-0.5">${name}</h3>
+                <a href="${explorerLink}" target="_blank" rel="noopener"
+                   class="font-mono text-[11px] text-gray-600 hover:text-suits-goldMuted transition-colors">
+                  ${formatAddress(address)}
+                </a>
+              </div>
+            </div>
+            <p class="text-xs text-gray-500 leading-relaxed mb-3">${truncDesc}</p>
+            ${tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-4">${tagsHtml}</div>` : '<div class="mb-4"></div>'}
+            <div class="flex items-center gap-2">
+              <a href="${profileLink}" target="_blank" rel="noopener"
+                 class="flex-1 text-center py-2 rounded-lg bg-suits-gold/10 border border-suits-gold/20 text-suits-goldMuted hover:text-suits-gold hover:border-suits-gold/40 text-xs font-medium transition-all">
+                View Profile
+              </a>
+              <a href="${explorerLink}" target="_blank" rel="noopener"
+                 class="py-2 px-3 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-suits-gold/20 transition-all group"
+                 title="View on Explorer">
+                <svg class="w-3.5 h-3.5 text-gray-600 group-hover:text-suits-goldMuted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          </div>
+        `;
+      }
+
+      // ─── Show/hide states ────────────────────────────────────────────
+      function showLoading() {
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('error').classList.add('hidden');
+        document.getElementById('empty').classList.add('hidden');
+        document.getElementById('agent-grid').classList.add('hidden');
+      }
+
+      function showError(msg) {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.remove('hidden');
+        document.getElementById('error-msg').textContent = msg;
+        document.getElementById('empty').classList.add('hidden');
+        document.getElementById('agent-grid').classList.add('hidden');
+      }
+
+      function showEmpty() {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.add('hidden');
+        document.getElementById('empty').classList.remove('hidden');
+        document.getElementById('agent-grid').classList.add('hidden');
+      }
+
+      function showGrid() {
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.add('hidden');
+        document.getElementById('empty').classList.add('hidden');
+        document.getElementById('agent-grid').classList.remove('hidden');
+      }
+
+      // ─── Load agents ────────────────────────────────────────────────
+      async function loadAgents() {
+        showLoading();
+
+        try {
+          initProvider();
+
+          // Fetch agent count and addresses
+          const [count, agents] = await Promise.all([
+            registryContract.agentCount(),
+            registryContract.getAgents(),
+          ]);
+
+          const agentCount = Number(count);
+          document.getElementById('agent-count').textContent = agentCount;
+
+          if (agentCount === 0 || agents.length === 0) {
+            showEmpty();
+            return;
+          }
+
+          // Fetch LSP3 metadata for all agents in parallel
+          const metadataPromises = agents.map(addr => fetchLSP3(addr));
+          const metadataResults = await Promise.allSettled(metadataPromises);
+
+          // Render cards
+          const grid = document.getElementById('agent-grid');
+          grid.innerHTML = '';
+
+          agents.forEach((address, index) => {
+            const result = metadataResults[index];
+            const lsp3 = result.status === 'fulfilled' ? result.value : null;
+            grid.innerHTML += renderAgentCard(address, lsp3, index);
+          });
+
+          showGrid();
+        } catch (err) {
+          console.error('Failed to load agents:', err);
+          showError('Failed to load agents: ' + (err.reason || err.message || 'Unknown error'));
+        }
+      }
+
+      // ─── Boot ───────────────────────────────────────────────────────
+      loadAgents();
+    </script>
+  </body>
+</html>
