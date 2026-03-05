@@ -402,7 +402,7 @@
 
     <script>
       // ─── Config ──────────────────────────────────────────────────────
-      const RPC_URL = 'https://rpc.lukso.gateway.fm';
+      const RPC_URL = 'https://42.rpc.thirdweb.com';
       const REGISTRY_ADDRESS = '0xF8e1971a4e115e5e48447d70f55293A640b5Afee';
       const IPFS_GATEWAY = 'https://api.universalprofile.cloud/ipfs/';
       const LSP3_KEY = '0x5ef83ad9559033e6e941db7d7c495acdce616347d28e90c7ce47cbfcfcad3bc5';
@@ -630,27 +630,25 @@
 
       // ─── Fetch agents from Envio indexer by tag ─────────────────────
       async function fetchEnvioAgents() {
-        const query = `{
-          profiles(where: {tags: {_contains: ["ai-agent"]}}, limit: 100) {
-            items { id name }
+        const results = [];
+        for (const tag of ['ai-agent', 'Agent']) {
+          try {
+            const query = `{ Profile(where: {tags: {_contains: ["${tag}"]}}, limit: 100) { id name } }`;
+            const res = await fetch(ENVIO_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ query }),
+            });
+            const data = await res.json();
+            const items = data?.data?.Profile || [];
+            for (const p of items) {
+              results.push({ address: ethers.getAddress(p.id), name: p.name, source: 'indexer' });
+            }
+          } catch (e) {
+            console.warn(`Envio fetch failed for tag "${tag}":`, e);
           }
-        }`;
-        try {
-          const res = await fetch(ENVIO_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query }),
-          });
-          const data = await res.json();
-          return (data?.data?.profiles?.items || []).map(p => ({
-            address: ethers.getAddress(p.id),
-            name: p.name,
-            source: 'indexer',
-          }));
-        } catch (e) {
-          console.warn('Envio fetch failed:', e);
-          return [];
         }
+        return results;
       }
 
       // ─── Fetch agents from on-chain registry ──────────────────────
