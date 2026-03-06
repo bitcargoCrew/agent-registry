@@ -211,11 +211,11 @@
           <!-- Contract Address -->
           <div class="fade-in fade-in-delay-4">
             <p class="text-xs text-gray-600 mb-1">Registry Contract</p>
-            <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+            <a href="https://explorer.lukso.network/address/0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f"
                target="_blank" rel="noopener"
                class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.06] hover:border-suits-gold/30 transition-all group">
               <span class="font-mono text-xs sm:text-sm text-gray-400 group-hover:text-suits-goldMuted transition-colors">
-                0xF8e1971a4e115e5e48447d70f55293A640b5Afee
+                0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f
               </span>
               <svg class="w-3.5 h-3.5 text-gray-600 group-hover:text-suits-goldMuted transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -309,10 +309,13 @@
           <div class="w-10 h-10 rounded-full gradient-gold-bg flex items-center justify-center mx-auto mb-3">
             <span class="text-suits-black font-bold text-sm">2</span>
           </div>
-          <h3 class="font-semibold text-sm text-white mb-2">Call <code class="font-mono text-suits-goldMuted">register()</code></h3>
+          <h3 class="font-semibold text-sm text-white mb-2">Call <code class="font-mono text-suits-goldMuted">register(agentType)</code></h3>
           <p class="text-xs text-gray-500 leading-relaxed">
-            Your Universal Profile calls the <code class="font-mono text-suits-goldMuted">register()</code> function
-            on the registry contract. Only the UP itself can register.
+            Your UP calls <code class="font-mono text-suits-goldMuted">register(type)</code> where type is
+            <code class="font-mono text-suits-goldMuted">0</code>=Autonomous,
+            <code class="font-mono text-suits-goldMuted">1</code>=Assistant,
+            <code class="font-mono text-suits-goldMuted">2</code>=Oracle,
+            <code class="font-mono text-suits-goldMuted">3</code>=Bot.
           </p>
         </div>
 
@@ -350,18 +353,19 @@
           <svg class="w-4 h-4 text-gray-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6" />
           </svg>
-          <span class="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 font-mono font-medium">Registry.register()</span>
+          <span class="px-3 py-1.5 rounded-lg bg-green-500/10 border border-green-500/20 text-green-400 font-mono font-medium">Registry.register(type)</span>
         </div>
 
         <div class="code-block rounded-xl p-4 overflow-x-auto">
           <pre class="text-xs sm:text-sm font-mono text-gray-300 leading-relaxed"><code><span class="text-gray-600">// 1. Encode the registry call</span>
-<span class="text-blue-400">const</span> registryAddress = <span class="text-suits-gold">"0xF8e1971a4e115e5e48447d70f55293A640b5Afee"</span>;
+<span class="text-blue-400">const</span> registryAddress = <span class="text-suits-gold">"0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f"</span>;
 <span class="text-blue-400">const</span> registry = <span class="text-blue-400">new</span> ethers.<span class="text-green-400">Contract</span>(registryAddress, [
-  <span class="text-suits-gold">"function register()"</span>
+  <span class="text-suits-gold">"function register(uint8 agentType)"</span>
 ], provider);
 
+<span class="text-gray-600">// AgentType: 0=Autonomous 1=Assistant 2=Oracle 3=Bot</span>
 <span class="text-gray-600">// 2. Encode UP.execute(CALL, registry, 0, registerCalldata)</span>
-<span class="text-blue-400">const</span> registerCalldata = registry.interface.<span class="text-green-400">encodeFunctionData</span>(<span class="text-suits-gold">"register"</span>);
+<span class="text-blue-400">const</span> registerCalldata = registry.interface.<span class="text-green-400">encodeFunctionData</span>(<span class="text-suits-gold">"register"</span>, [<span class="text-purple-400">0</span>]);
 <span class="text-blue-400">const</span> OPERATION_CALL = <span class="text-purple-400">0</span>;
 <span class="text-blue-400">const</span> executeCalldata = up.interface.<span class="text-green-400">encodeFunctionData</span>(
   <span class="text-suits-gold">"execute"</span>, [OPERATION_CALL, registryAddress, <span class="text-purple-400">0</span>, registerCalldata]
@@ -375,7 +379,7 @@
 
       <!-- Explorer Link -->
       <div class="text-center">
-        <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+        <a href="https://explorer.lukso.network/address/0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f"
            target="_blank" rel="noopener"
            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-suits-gold/10 border border-suits-gold/20 text-suits-goldMuted hover:text-suits-gold hover:border-suits-gold/40 transition-all text-sm font-medium">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,7 +398,7 @@
           <a href="https://universaleverything.io/0x36c2034025705AD0e681d860f0Fd51e84c37b629"
              target="_blank" class="hover:text-suits-goldMuted transition-colors">Harvey Specter</a>
           <a href="https://lukso.network" target="_blank" class="hover:text-suits-goldMuted transition-colors">LUKSO</a>
-          <a href="https://explorer.lukso.network/address/0xF8e1971a4e115e5e48447d70f55293A640b5Afee"
+          <a href="https://explorer.lukso.network/address/0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f"
              target="_blank" class="hover:text-suits-goldMuted transition-colors">Explorer</a>
         </div>
       </div>
@@ -403,17 +407,29 @@
     <script>
       // ─── Config ──────────────────────────────────────────────────────
       const RPC_URL = 'https://42.rpc.thirdweb.com';
-      const REGISTRY_ADDRESS = '0xF8e1971a4e115e5e48447d70f55293A640b5Afee';
+      const REGISTRY_ADDRESS = '0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f'; // V2
+      const REGISTRY_V1      = '0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f'; // V1 (legacy)
       const IPFS_GATEWAY = 'https://api.universalprofile.cloud/ipfs/';
       const LSP3_KEY = '0x5ef83ad9559033e6e941db7d7c495acdce616347d28e90c7ce47cbfcfcad3bc5';
       const PROFILE_BASE_URL = 'https://universaleverything.io/';
       const EXPLORER_BASE_URL = 'https://explorer.lukso.network/address/';
       const ENVIO_URL = 'https://envio.lukso-mainnet.universal.tech/v1/graphql';
 
+      const AGENT_TYPE_LABELS = ['Autonomous', 'Assistant', 'Oracle', 'Bot'];
+      const AGENT_TYPE_COLORS = {
+        Autonomous: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
+        Assistant:  'text-blue-400 bg-blue-500/10 border-blue-500/20',
+        Oracle:     'text-cyan-400 bg-cyan-500/10 border-cyan-500/20',
+        Bot:        'text-gray-400 bg-gray-500/10 border-gray-500/20',
+      };
+
       const REGISTRY_ABI = [
         'function getAgents() view returns (address[])',
         'function agentCount() view returns (uint256)',
         'function isAgent(address) view returns (bool)',
+        'function getAgentInfo(address) view returns (tuple(address agent, uint8 agentType, uint256 registeredAt))',
+        'function agentTypeLabel(address) view returns (string)',
+        'function registrationFee() view returns (uint256)',
       ];
 
       const UP_ABI = [
@@ -520,7 +536,7 @@
       }
 
       // ─── Render an agent card ────────────────────────────────────────
-      function renderAgentCard(address, lsp3, index, source) {
+      function renderAgentCard(address, lsp3, index, source, agentType) {
         const profile = lsp3?.LSP3Profile || {};
         const name = profile.name || formatAddress(address);
         const description = profile.description || 'No description available';
@@ -562,6 +578,11 @@
           ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-suits-gold/15 text-suits-goldMuted border border-suits-gold/20 font-medium">Registry</span>'
           : '<span class="text-[9px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-400 border border-blue-500/20 font-medium">Indexer</span>';
 
+        const typeColors = AGENT_TYPE_COLORS[agentType] || 'text-gray-400 bg-gray-500/10 border-gray-500/20';
+        const typeBadge = agentType
+          ? `<span class="text-[9px] px-1.5 py-0.5 rounded border font-medium ${typeColors}">${agentType}</span>`
+          : '';
+
         return `
           <div class="card rounded-2xl p-5 stagger-in" style="animation-delay: ${delay}s;">
             <div class="flex items-start gap-4 mb-3">
@@ -569,9 +590,9 @@
                 ${avatarHtml}
               </div>
               <div class="min-w-0 flex-1">
-                <div class="flex items-center gap-2 mb-0.5">
+                <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
                   <h3 class="font-semibold text-white text-sm truncate">${name}</h3>
-                  ${sourceBadge}
+                  ${typeBadge}${sourceBadge}
                 </div>
                 <a href="${explorerLink}" target="_blank" rel="noopener"
                    class="font-mono text-[11px] text-gray-600 hover:text-suits-goldMuted transition-colors">
@@ -655,10 +676,19 @@
       async function fetchRegistryAgents() {
         try {
           const agents = await registryContract.getAgents();
-          return agents.map(a => ({
-            address: ethers.getAddress(a),
-            source: 'registry',
-          }));
+          const infoResults = await Promise.allSettled(
+            agents.map(a => registryContract.getAgentInfo(a))
+          );
+          return agents.map((a, i) => {
+            const info = infoResults[i].status === 'fulfilled' ? infoResults[i].value : null;
+            const typeIndex = info ? Number(info.agentType) : null;
+            return {
+              address: ethers.getAddress(a),
+              source: 'registry',
+              agentType: typeIndex !== null ? AGENT_TYPE_LABELS[typeIndex] : null,
+              registeredAt: info ? Number(info.registeredAt) : null,
+            };
+          });
         } catch (e) {
           console.warn('Registry fetch failed:', e);
           return [];
@@ -717,7 +747,7 @@
           allAgents.forEach((agent, index) => {
             const result = metadataResults[index];
             const lsp3 = result.status === 'fulfilled' ? result.value : null;
-            grid.innerHTML += renderAgentCard(agent.address, lsp3, index, agent.source);
+            grid.innerHTML += renderAgentCard(agent.address, lsp3, index, agent.source, agent.agentType || null);
           });
 
           showGrid();
