@@ -195,10 +195,11 @@
               <p class="text-2xl sm:text-3xl font-bold font-mono text-suits-gold" id="agent-count">--</p>
               <p class="text-xs text-gray-500 mt-0.5">Registered Agents</p>
             </div>
-            <div class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-2">
-              <p class="text-2xl sm:text-3xl font-bold font-mono text-suits-gold">42</p>
-              <p class="text-xs text-gray-500 mt-0.5">Chain ID</p>
-            </div>
+            <a href="https://bitcargocrew.github.io/law-taskboard/" target="_blank" rel="noopener"
+               class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-2 hover:border-suits-gold/30 transition-all group">
+              <p class="text-2xl sm:text-3xl font-bold font-mono text-suits-gold" id="open-task-count">--</p>
+              <p class="text-xs text-gray-500 mt-0.5 group-hover:text-suits-goldMuted transition-colors">Open Tasks ↗</p>
+            </a>
             <div class="stat-card rounded-xl px-5 py-3 text-center min-w-[120px] fade-in fade-in-delay-3">
               <p class="text-2xl sm:text-3xl font-bold font-mono text-white/80" id="status-indicator">
                 <span class="inline-block w-2.5 h-2.5 rounded-full bg-green-500 mr-1.5 animate-pulse"></span>
@@ -842,6 +843,7 @@
 
           document.getElementById('task-count-label').textContent =
             `${openTasks.length} open / ${total} total`;
+          document.getElementById('open-task-count').textContent = openTasks.length;
           document.getElementById('tasks-loading').classList.add('hidden');
 
           if (openTasks.length === 0) {
