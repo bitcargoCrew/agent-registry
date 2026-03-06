@@ -435,6 +435,15 @@
     </footer>
 
     <script>
+      // ─── Helpers ─────────────────────────────────────────────────────
+      function escapeHTML(s) {
+        return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+      }
+      function safeHref(url) {
+        if (!url) return '#';
+        return /^(https?:|ipfs:)\/\//i.test(url.trim()) ? url.trim() : '#';
+      }
+
       // ─── Config ──────────────────────────────────────────────────────
       const RPC_URL = 'https://42.rpc.thirdweb.com';
       const REGISTRY_ADDRESS = '0x8C32C0BbC90a302065CA5F60d623beA7CF7C025f'; // V2
@@ -576,10 +585,14 @@
         const explorerLink = EXPLORER_BASE_URL + address;
         const delay = Math.min(index * 0.08, 0.6);
 
+        const safeName    = escapeHTML(name);
+        const safeImgUrl  = safeHref(imageUrl);
+        const safeImgAlt  = escapeHTML(name);
+
         let avatarHtml;
-        if (imageUrl) {
+        if (safeImgUrl !== '#') {
           avatarHtml = `
-            <img src="${imageUrl}" alt="${name}"
+            <img src="${safeImgUrl}" alt="${safeImgAlt}"
               class="agent-avatar w-16 h-16 rounded-full object-cover border-2 border-suits-gold/20"
               onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" />
             <span class="agent-avatar w-16 h-16 rounded-full border-2 border-suits-gold/20 items-center justify-center text-lg font-bold"
@@ -593,14 +606,14 @@
         }
 
         const tagsHtml = tags.slice(0, 5).map(tag =>
-          `<span class="tag rounded-full px-2.5 py-0.5 text-[10px] font-medium">${tag}</span>`
+          `<span class="tag rounded-full px-2.5 py-0.5 text-[10px] font-medium">${escapeHTML(tag)}</span>`
         ).join('');
 
         // Truncate description
         const maxDesc = 120;
-        const truncDesc = description.length > maxDesc
-          ? description.slice(0, maxDesc).trim() + '...'
-          : description;
+        const truncDesc = escapeHTML(
+          description.length > maxDesc ? description.slice(0, maxDesc).trim() + '...' : description
+        );
 
         const sourceBadge = source === 'both'
           ? '<span class="text-[9px] px-1.5 py-0.5 rounded bg-green-500/15 text-green-400 border border-green-500/20 font-medium">Registry + Indexer</span>'
@@ -621,7 +634,7 @@
               </div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-1.5 flex-wrap mb-0.5">
-                  <h3 class="font-semibold text-white text-sm truncate">${name}</h3>
+                  <h3 class="font-semibold text-white text-sm truncate">${safeName}</h3>
                   ${typeBadge}${sourceBadge}
                 </div>
                 <a href="${explorerLink}" target="_blank" rel="noopener"
@@ -630,7 +643,7 @@
                 </a>
               </div>
             </div>
-            <p class="text-xs text-gray-500 leading-relaxed mb-3">${truncDesc}</p>
+            <p class="text-xs text-gray-500 leading-relaxed mb-3">${truncDesc}</p><!-- truncDesc is pre-escaped -->
             ${tags.length > 0 ? `<div class="flex flex-wrap gap-1.5 mb-4">${tagsHtml}</div>` : '<div class="mb-4"></div>'}
             <div class="flex items-center gap-2">
               <a href="${profileLink}" target="_blank" rel="noopener"
@@ -811,7 +824,7 @@
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-start justify-between gap-3">
-                <p class="text-sm text-white font-medium leading-snug">${task.description}</p>
+                <p class="text-sm text-white font-medium leading-snug">${escapeHTML(task.description)}</p>
                 <div class="flex-shrink-0 text-right">
                   <p class="text-suits-gold font-mono font-bold text-sm">${bounty}</p>
                   <p class="text-[10px] text-gray-600">$LAW</p>
